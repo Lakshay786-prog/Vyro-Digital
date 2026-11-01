@@ -40,7 +40,7 @@ export default function Home() {
           <span>JAMMU · INDIA · EVERYWHERE</span>
         </div>
 
-        {/* 3D Metallic Atom Animation with VYRO in motion, replacing previous hero orbit */}
+        {/* 3D Metallic Atom Animation with VYRO in motion */}
         <div className="hero-atom-wrap" aria-hidden="true">
           <AtomAnimation />
         </div>
@@ -104,7 +104,7 @@ export default function Home() {
           <em>Grow with clarity.</em>
         </h2>
         <Link className="button button-outline" href="/contact">
-          Let's build something ↗
+          Let&apos;s build something ↗
         </Link>
       </section>
 
@@ -120,14 +120,14 @@ export default function Home() {
               <h3 className="team-heading">Meet Our Team</h3>
 
               <div className="team-member">
-                <h4>Hewan Kachru — <em>Founder & Chief Executive Officer (CEO)</em></h4>
+                <h4>Hewan Kachru — <em>Founder &amp; Chief Executive Officer (CEO)</em></h4>
                 <p>
                   Meet Hewan Kachru, who leads VYRO Digital&apos;s vision, business strategy, client relationships and digital marketing initiatives, helping brands build a strong online presence and achieve growth.
                 </p>
               </div>
 
               <div className="team-member">
-                <h4>Lakshay Verma — <em>Co-Founder & Chief Technology Officer (CTO)</em></h4>
+                <h4>Lakshay Verma — <em>Co-Founder &amp; Chief Technology Officer (CTO)</em></h4>
                 <p>
                   Meet Lakshay, who leads website development and technical execution, transforming ideas into modern, responsive and high-performing digital experiences.
                 </p>
@@ -155,7 +155,7 @@ export default function Home() {
           ready to <em>move?</em>
         </h2>
         <Link className="button button-gold" href="/contact">
-          Tell us what you're building ↗
+          Tell us what you&apos;re building ↗
         </Link>
       </section>
     </>

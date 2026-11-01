@@ -12,7 +12,7 @@ export const metadata = {
 export default function Founder() {
   return (
     <>
-      {/* 1. Cinematic Hero — Preserved exactly as in the previous code & user screenshot */}
+      {/* 1. Cinematic Hero Section with Animated Portrait Reveal */}
       <section className="founder-cinematic">
         <div className="founder-cinematic-image">
           <Image
@@ -30,7 +30,7 @@ export default function Founder() {
             Hewan<br />
             <em>Kachru.</em>
           </h1>
-          <p className="hero-copy">Founder & Chief Executive Officer</p>
+          <p className="hero-copy">Founder &amp; Chief Executive Officer</p>
           <div className="hero-actions">
             <Link className="button button-gold" href="/contact">
               Work with VYRO ↗
@@ -41,10 +41,10 @@ export default function Founder() {
         <span className="cinematic-index">01 — THE FOUNDER</span>
       </section>
 
-      {/* 2. Editorial "OUR FOUNDER" Story Section (with full-color photo and NO signature) */}
+      {/* 2. Editorial "OUR FOUNDER" Story Section (placed right after the hero) */}
       <section className="founder-letterist-hero">
         <div className="letterist-grid">
-          {/* Left: Full-Color Portrait */}
+          {/* Left: Cinematic Vignette Portrait */}
           <div className="letterist-portrait-col">
             <div className="letterist-portrait-frame">
               <Image
@@ -87,7 +87,7 @@ export default function Founder() {
                 Connect with VYRO ↗
               </Link>
               <span className="letterist-role-tag">
-                HEWAN KACHRU · FOUNDER & CEO
+                HEWAN KACHRU · FOUNDER &amp; CEO
               </span>
             </div>
           </div>
@@ -150,7 +150,7 @@ export default function Founder() {
                   Explore Studio Services ↗
                 </Link>
                 <Link className="text-link" href="/contact">
-                  Initiate Private Dialogue <span>→</span>
+                  Initiate Private Dialogue <span>↗</span>
                 </Link>
               </div>
             </div>
@@ -178,7 +178,7 @@ export default function Founder() {
           <div className="pillar-grid">
             <article>
               <b>01 / DIRECTION</b>
-              <h3>Brand Strategy & Market Positioning</h3>
+              <h3>Brand Strategy &amp; Market Positioning</h3>
               <p>
                 Defining unique value propositions, audience segmentation, and category leadership so your brand communicates with unmistakable conviction.
               </p>
@@ -192,7 +192,7 @@ export default function Founder() {
             </article>
             <article>
               <b>03 / MOMENTUM</b>
-              <h3>Algorithmic Paid Acquisition & CRO</h3>
+              <h3>Algorithmic Paid Acquisition &amp; CRO</h3>
               <p>
                 Building sustainable paid traffic loops across Meta, Google, and LinkedIn with continuous creative testing and data-driven conversion rate optimization.
               </p>
@@ -205,10 +205,10 @@ export default function Founder() {
       <section className="quote-panel">
         <Reveal>
           <p>
-            “The goal isn&apos;t simply to be seen.<br />
-            <em>It&apos;s to make every impression count.</em>”
+            &ldquo;The goal isn&apos;t simply to be seen.<br />
+            <em>It&apos;s to make every impression count.</em>&rdquo;
           </p>
-          <small>HEWAN KACHRU / FOUNDER & CEO — VYRO DIGITAL</small>
+          <small>HEWAN KACHRU / FOUNDER &amp; CEO — VYRO DIGITAL</small>
         </Reveal>
       </section>
     </>

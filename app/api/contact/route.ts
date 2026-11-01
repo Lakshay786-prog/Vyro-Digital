@@ -31,9 +31,9 @@ export async function POST(req: Request) {
     }
 
     /* ── 3. Read env vars ── */
-    const gmailUser = process.env.GMAIL_USER;   // e.g. hewankachru33@gmail.com
+    const gmailUser = process.env.GMAIL_USER;   // e.g. vyrodigital04@gmail.com
     const gmailPass = process.env.GMAIL_PASS;   // Gmail App Password (16 chars)
-    const toEmail   = process.env.CONTACT_TO ?? "hewankachru33@gmail.com";
+    const toEmail   = process.env.CONTACT_TO ?? "vyrodigital04@gmail.com";
 
     /* If credentials are not configured, fail gracefully */
     if (!gmailUser || !gmailPass) {
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Email delivery is not active yet. Please email hewankachru33@gmail.com or reach us on WhatsApp.",
+            "Email delivery is not active yet. Please email vyrodigital04@gmail.com or reach us on WhatsApp.",
         },
         { status: 503 }
       );

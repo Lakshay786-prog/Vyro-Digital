@@ -34,12 +34,22 @@ export default function Contact() {
             </h2>
             <div className="contact-method">
               <span>EMAIL</span>
-              <a href="mailto:hewankachru33@gmail.com">hewankachru33@gmail.com</a>
+              <a href="mailto:vyrodigital04@gmail.com">vyrodigital04@gmail.com</a>
             </div>
             <div className="contact-method">
               <span>CALL / WHATSAPP</span>
               <a href="https://wa.me/918082703677" target="_blank" rel="noreferrer">
                 +91 80827 03677 ↗
+              </a>
+            </div>
+            <div className="contact-method">
+              <span>INSTAGRAM</span>
+              <a
+                href="https://www.instagram.com/vyro__digital?psln=MWJsbDJzMnkzZ2dmNg=="
+                target="_blank"
+                rel="noreferrer"
+              >
+                @vyro__digital ↗
               </a>
             </div>
             <div className="contact-method">

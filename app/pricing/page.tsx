@@ -134,7 +134,7 @@ export default function Pricing() {
         <Reveal>
           <p className="eyebrow">INDIVIDUAL SERVICES</p>
           <h2>
-            À la carte <em>pricing.</em>
+            Our <em>pricing.</em>
           </h2>
           <div className="price-table">
             {prices.map(([n, p]) => (
