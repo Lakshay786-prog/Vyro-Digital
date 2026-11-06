@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "../../components/Reveal";
 
-export const metadata = { title: "Services — VYRO Digital" };
+export const metadata: Metadata = {
+  title: "Services — Web Development, Branding & Growth Marketing",
+  description:
+    "Explore our full suite of digital services: brand identity, custom website development, SEO, performance marketing, social media, and complete growth packages.",
+  alternates: {
+    canonical: "/services",
+  },
+};
 
 const items: [string, string, string, string][] = [
   [

@@ -106,9 +106,11 @@ export default function Work() {
         </div>
 
         <Reveal>
-          <Link className="button button-gold" href="/contact">
-            Create your project ↗
-          </Link>
+          <div style={{ paddingTop: "clamp(40px, 6vw, 60px)" }}>
+            <Link className="button button-gold" href="/contact">
+              Create your project ↗
+            </Link>
+          </div>
         </Reveal>
       </section>
     </>

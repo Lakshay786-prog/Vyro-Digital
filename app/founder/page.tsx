@@ -1,12 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Reveal } from "../../components/Reveal";
 import AtomAnimation from "../../components/AtomAnimation";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Founder & CEO — Hewan Kachru | VYRO Digital",
   description:
     "Meet Hewan Kachru, Founder and Chief Executive Officer of VYRO Digital. Uniting luxury-grade brand aesthetics with high-velocity commercial performance.",
+  alternates: {
+    canonical: "/founder",
+  },
 };
 
 export default function Founder() {

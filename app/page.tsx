@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Reveal } from "../components/Reveal";
 import AtomAnimation from "../components/AtomAnimation";
 import InteractiveCube from "../components/InteractiveCube";
+
+export const metadata: Metadata = {
+  title: "VYRO Digital — Build a Sharper Digital Presence",
+  description:
+    "VYRO Digital is a digital growth studio helping businesses build their brand, launch high-performing websites, and scale customer acquisition.",
+  alternates: {
+    canonical: "/",
+  },
+};
 
 const services = [
   ["01", "Brand identity", "Create a brand people recognise, remember and trust."],
@@ -112,7 +122,7 @@ export default function Home() {
         <Reveal>
           <div className="founder-copy">
             <p className="eyebrow">03 / THE PEOPLE BEHIND VYRO</p>
-            <h2>
+            <h2 style={{ fontSize: "clamp(2.8rem, 5.5vw, 5.2rem)", marginBottom: "clamp(36px, 5vw, 56px)" }}>
               Strategy starts<br />
               with <em>people.</em>
             </h2>

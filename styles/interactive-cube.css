@@ -12,7 +12,7 @@
   overflow: hidden;
   cursor: grab;
   user-select: none;
-  touch-action: none;
+  touch-action: pan-y;
   background: radial-gradient(circle at 50% 50%, rgba(25, 23, 20, 0.8) 0%, rgba(10, 9, 8, 0.98) 70%, #060606 100%);
   perspective: 1200px;
   transition: background 0.4s ease;
@@ -128,7 +128,7 @@
 /* External Stickers — Clean Optimum Stealth Black with Glowing Golden Outlines */
 .sticker {
   padding: 3px;
-  background: #050505; /* Black channel seams */
+  background: #050505;
   border: 1px solid rgba(201, 164, 92, 0.25);
 }
 
@@ -138,7 +138,6 @@
   border-radius: 5px;
   position: relative;
   background: linear-gradient(145deg, #1e1c18 0%, #11100e 55%, #060605 100%);
-  /* Radiant glowing golden outline matching VYRO theme */
   border: 1.2px solid rgba(201, 164, 92, 0.75);
   box-shadow:
     0 0 6px rgba(201, 164, 92, 0.35),
@@ -149,7 +148,7 @@
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Subtle directional face variations maintaining optimum black with gold outlines */
+/* Subtle directional face variations */
 .face-top .sticker-surface {
   background: linear-gradient(135deg, #26231e 0%, #161411 60%, #080807 100%);
   border-color: rgba(229, 201, 143, 0.85);
@@ -170,7 +169,7 @@
     inset -2px -2px 6px rgba(0, 0, 0, 0.95);
 }
 
-/* Faces 3D Coordinate Placement (50px size, half = 25px) */
+/* Faces 3D Coordinate Placement */
 .face-front  { transform: translateZ(25px); }
 .face-back   { transform: rotateY(180deg) translateZ(25px); }
 .face-top    { transform: rotateX(90deg) translateZ(25px); }
@@ -182,7 +181,6 @@
    NEON GOLDEN TRANSFORMATION ON HOVER
    ========================================================================== */
 
-/* When user hovers over the cube container: refined soft neon gold glow */
 .is-cube-hovered .sticker-surface {
   border-color: rgba(229, 201, 143, 0.92);
   box-shadow:
@@ -191,7 +189,6 @@
     inset 0 0 6px rgba(201, 164, 92, 0.18);
 }
 
-/* Individual Cubie Hover: subtle elevated golden luster */
 .cubie:hover .sticker-surface {
   border-color: #ffd875;
   background: linear-gradient(145deg, #2b251b 0%, #181511 60%, #0a0907 100%);
@@ -203,7 +200,7 @@
 }
 
 /* ==========================================================================
-   Founder Card Integration (Minimalist Showcase)
+   Founder Card Integration & Responsive Tuning
    ========================================================================== */
 
 .founder-cube-card {
@@ -226,17 +223,44 @@
 }
 
 @media (max-width: 760px) {
+  .rubiks-container {
+    overflow: hidden;
+  }
+  .ring-outer {
+    width: 320px;
+    height: 320px;
+    animation-duration: 48s;
+  }
+  .ring-inner {
+    width: 260px;
+    height: 260px;
+    animation-duration: 36s;
+  }
   .rubiks-viewport {
-    transform: scale(0.85);
+    transform: scale(0.8);
   }
   .founder-cube-card {
-    min-height: 440px !important;
+    min-height: 400px !important;
   }
 }
 
 @media (max-width: 480px) {
+  .rubiks-container {
+    overflow: hidden;
+  }
+  .ring-outer {
+    width: 270px;
+    height: 270px;
+  }
+  .ring-inner {
+    width: 210px;
+    height: 210px;
+  }
   .rubiks-viewport {
-    transform: scale(0.75);
+    transform: scale(0.68);
+  }
+  .founder-cube-card {
+    min-height: 360px !important;
   }
 }
 

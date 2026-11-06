@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import { ContactForm } from "../../components/ContactForm";
 import { Reveal } from "../../components/Reveal";
 
-export const metadata = { title: "Contact VYRO Digital" };
+export const metadata: Metadata = {
+  title: "Contact Us — Start a Project Conversation",
+  description:
+    "Get in touch with VYRO Digital to discuss your website development, branding, or growth marketing project. We respond within 24 hours.",
+  alternates: {
+    canonical: "/contact",
+  },
+};
 
 export default function Contact() {
   return (

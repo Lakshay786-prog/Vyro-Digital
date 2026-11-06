@@ -1,8 +1,9 @@
 "use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const links = [
   ["Home", "/"],
@@ -18,6 +19,46 @@ const links = [
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  // Close on Escape or click/touch outside & lock body scroll when open
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && open) {
+        setOpen(false);
+      }
+    }
+
+    function handleClickOutside(e: MouseEvent | TouchEvent) {
+      if (!open) return;
+      const target = e.target as Node;
+      if (
+        navRef.current &&
+        !navRef.current.contains(target) &&
+        toggleRef.current &&
+        !toggleRef.current.contains(target)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    if (open) {
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleKeyDown);
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside, { passive: true });
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [open]);
 
   return (
     <>
@@ -38,14 +79,25 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <small>BUILD. BRAND. GROW.</small>
           </span>
         </Link>
+
         <button
+          ref={toggleRef}
+          id="mobile-menu-toggle"
           className="menu-toggle"
-          aria-label="Toggle navigation"
+          aria-label={open ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={open}
+          aria-controls="primary-navigation"
           onClick={() => setOpen(!open)}
         >
-          {open ? "✕" : "☰"}
+          <span aria-hidden="true">{open ? "✕" : "☰"}</span>
         </button>
-        <nav className={open ? "nav nav-open" : "nav"}>
+
+        <nav
+          id="primary-navigation"
+          ref={navRef}
+          className={open ? "nav nav-open" : "nav"}
+          aria-label="Main Navigation"
+        >
           {links.map(([label, url]) => (
             <Link
               key={url}

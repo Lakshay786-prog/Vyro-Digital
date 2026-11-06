@@ -1,113 +1,382 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
-/* ─── Validation helpers ─── */
-function isValidEmail(v: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+export const runtime = "nodejs";
+
+/* ─── In-Memory Rate Limiting (5 requests per IP per 10 minutes) ─── */
+interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}
+const rateLimitMap = new Map<string, RateLimitEntry>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000; // 10 minutes
+  const maxRequests = 5;
+
+  // Prune expired entries if map grows large
+  if (rateLimitMap.size > 1000) {
+    for (const [k, v] of rateLimitMap.entries()) {
+      if (now > v.resetAt) rateLimitMap.delete(k);
+    }
+  }
+
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs });
+    return false;
+  }
+
+  if (entry.count >= maxRequests) {
+    return true;
+  }
+
+  entry.count += 1;
+  return false;
 }
 
+/* ─── CORS Headers ─── */
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
+/* ─── Validation & Sanitisation Helpers ─── */
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
+function isPlaceholderCredential(val: string | undefined): boolean {
+  if (!val) return true;
+  const lower = val.toLowerCase().trim();
+  return (
+    lower === "" ||
+    lower.includes("your_") ||
+    lower.includes("password_here") ||
+    lower.includes("app_password") ||
+    lower.includes("example")
+  );
+}
+
+/* ─── POST /api/contact ─── */
 export async function POST(req: Request) {
   try {
-    /* ── 1. Parse & sanitise body ── */
-    const body = await req.json();
-    const name    = String(body.name    ?? "").trim();
-    const email   = String(body.email   ?? "").trim();
-    const phone   = String(body.phone   ?? "").trim();
-    const service = String(body.service ?? "General enquiry").trim();
+    /* 1. Extract Client IP for Rate Limiting */
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded
+      ? forwarded.split(",")[0].trim()
+      : req.headers.get("x-real-ip") || "127.0.0.1";
+
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        {
+          error:
+            "Too many requests. Please wait a few minutes before submitting again or email us directly at vyrodigital04@gmail.com.",
+        },
+        { status: 429, headers: corsHeaders }
+      );
+    }
+
+    /* 2. Parse JSON Body */
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    /* 3. Honeypot check: If filled, silently return { ok: true } */
+    const website = String(body.website ?? "").trim();
+    if (website) {
+      return NextResponse.json({ ok: true }, { status: 200, headers: corsHeaders });
+    }
+
+    const name = String(body.name ?? "").trim();
+    const email = String(body.email ?? "").trim();
+    const phone = String(body.phone ?? "").trim();
+    const service = String(body.service ?? "Website development").trim();
     const message = String(body.message ?? "").trim();
 
-    /* ── 2. Input validation ── */
-    if (!name || !email || !message) {
+    /* 4. Field Limits and Validation */
+    if (!name) {
       return NextResponse.json(
-        { error: "Please complete your name, email and project message." },
-        { status: 400 }
+        { error: "Full Name is required." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    if (name.length > 100) {
+      return NextResponse.json(
+        { error: "Name must be 100 characters or fewer." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    if (!email) {
+      return NextResponse.json(
+        { error: "Email address is required." },
+        { status: 400, headers: corsHeaders }
       );
     }
     if (!isValidEmail(email)) {
       return NextResponse.json(
-        { error: "Please enter a valid email address." },
-        { status: 400 }
+        { error: "Please provide a valid email address." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    if (email.length > 254) {
+      return NextResponse.json(
+        { error: "Email must be 254 characters or fewer." },
+        { status: 400, headers: corsHeaders }
       );
     }
 
-    /* ── 3. Read env vars ── */
-    const gmailUser = process.env.GMAIL_USER;   // e.g. vyrodigital04@gmail.com
-    const gmailPass = process.env.GMAIL_PASS;   // Gmail App Password (16 chars)
-    const toEmail   = process.env.CONTACT_TO ?? "vyrodigital04@gmail.com";
+    if (phone.length > 30) {
+      return NextResponse.json(
+        { error: "Phone number must be 30 characters or fewer." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
-    /* If credentials are not configured, fail gracefully */
-    if (!gmailUser || !gmailPass) {
-      console.warn("[contact] GMAIL_USER / GMAIL_PASS not set — email not sent.");
+    if (service.length > 100) {
+      return NextResponse.json(
+        { error: "Service must be 100 characters or fewer." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    if (!message || message.length < 10) {
+      return NextResponse.json(
+        { error: "Project details must be at least 10 characters." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    if (message.length > 3000) {
+      return NextResponse.json(
+        { error: "Project details must be 3000 characters or fewer." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    /* 5. Read & Verify Credentials */
+    const gmailUser = process.env.GMAIL_USER?.trim();
+    const gmailPass = process.env.GMAIL_PASS?.trim();
+    const contactTo = process.env.CONTACT_TO?.trim() || "vyrodigital04@gmail.com";
+
+    if (!gmailUser || !gmailPass || isPlaceholderCredential(gmailPass)) {
+      console.warn(
+        `[contact-api] Email credentials not configured or placeholder detected (user: ${gmailUser || "none"}).`
+      );
       return NextResponse.json(
         {
           error:
-            "Email delivery is not active yet. Please email vyrodigital04@gmail.com or reach us on WhatsApp.",
+            "Email service is temporarily unavailable. Please contact vyrodigital04@gmail.com directly.",
         },
-        { status: 503 }
+        { status: 503, headers: corsHeaders }
       );
     }
 
-    /* ── 4. Build Nodemailer transporter (Gmail SMTP) ── */
+    /* 6. Strip newlines from name and service for email header safety */
+    const cleanName = name.replace(/[\r\n]+/g, " ");
+    const cleanService = service.replace(/[\r\n]+/g, " ");
+
+    /* 7. Configure Nodemailer Transporter */
     const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: gmailUser, pass: gmailPass },
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: gmailUser,
+        pass: gmailPass,
+      },
     });
 
-    /* ── 5. Compose email ── */
+    /* 8. Timestamp & Escaped HTML Rendering */
+    const now = new Date();
+    const submissionDate = new Intl.DateTimeFormat("en-IN", {
+      dateStyle: "full",
+      timeStyle: "medium",
+      timeZone: "Asia/Kolkata",
+    }).format(now);
+
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safePhone = escapeHtml(phone || "Not provided");
+    const safeService = escapeHtml(service);
+    const safeMessage = escapeHtml(message).replace(/\n/g, "<br/>");
+    const safeTimestamp = escapeHtml(`${submissionDate} (IST)`);
+
     const html = `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a">
-        <div style="background:#0b0b0b;padding:24px 32px;border-bottom:3px solid #c9a45c">
-          <h1 style="color:#c9a45c;font-size:20px;margin:0">VYRO DIGITAL</h1>
-          <p style="color:#888;margin:4px 0 0;font-size:13px">New website enquiry</p>
-        </div>
-        <div style="padding:32px">
-          <table style="width:100%;border-collapse:collapse">
-            <tr><td style="padding:8px 0;color:#555;width:140px;vertical-align:top;font-size:14px">Name</td>
-                <td style="padding:8px 0;font-weight:600;font-size:14px">${name}</td></tr>
-            <tr><td style="padding:8px 0;color:#555;vertical-align:top;font-size:14px">Email</td>
-                <td style="padding:8px 0;font-size:14px"><a href="mailto:${email}" style="color:#c9a45c">${email}</a></td></tr>
-            <tr><td style="padding:8px 0;color:#555;vertical-align:top;font-size:14px">Phone / WhatsApp</td>
-                <td style="padding:8px 0;font-size:14px">${phone || "—"}</td></tr>
-            <tr><td style="padding:8px 0;color:#555;vertical-align:top;font-size:14px">Service</td>
-                <td style="padding:8px 0;font-size:14px">${service}</td></tr>
-          </table>
-          <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0"/>
-          <p style="color:#555;font-size:13px;margin-bottom:8px">Project details</p>
-          <p style="white-space:pre-wrap;font-size:15px;line-height:1.6">${message}</p>
-        </div>
-        <div style="background:#f7f7f7;padding:16px 32px;font-size:12px;color:#888">
-          Sent via the VYRO Digital website contact form
-        </div>
-      </div>
-    `;
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>New VYRO Digital Enquiry</title>
+</head>
+<body style="margin:0;padding:0;background-color:#070707;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#ede8df;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#070707;padding:30px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:600px;background-color:#111111;border:1px solid #222222;border-radius:4px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.6);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="background-color:#0b0b0b;padding:28px 36px;border-bottom:2px solid #c9a45c;">
+              <table role="presentation" width="100%">
+                <tr>
+                  <td>
+                    <div style="font-size:20px;font-weight:700;letter-spacing:3px;color:#c9a45c;text-transform:uppercase;">VYRO DIGITAL</div>
+                    <div style="font-size:12px;letter-spacing:1px;color:#8f887e;margin-top:4px;text-transform:uppercase;">New Website Enquiry</div>
+                  </td>
+                  <td align="right">
+                    <span style="display:inline-block;padding:5px 12px;background:rgba(201,164,92,0.12);border:1px solid #c9a45c;color:#c9a45c;font-size:11px;font-weight:600;letter-spacing:1px;border-radius:2px;text-transform:uppercase;">
+                      ${safeService}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Visitor Info -->
+          <tr>
+            <td style="padding:32px 36px 20px;">
+              <h2 style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#c9a45c;margin:0 0 16px;">Visitor Information</h2>
+              <table role="presentation" width="100%" style="border-collapse:collapse;">
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #1f1f1f;color:#8f887e;font-size:13px;width:140px;">Full Name</td>
+                  <td style="padding:10px 0;border-bottom:1px solid #1f1f1f;color:#ede8df;font-size:14px;font-weight:600;">${safeName}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #1f1f1f;color:#8f887e;font-size:13px;">Email Address</td>
+                  <td style="padding:10px 0;border-bottom:1px solid #1f1f1f;color:#ede8df;font-size:14px;">
+                    <a href="mailto:${safeEmail}" style="color:#c9a45c;text-decoration:none;font-weight:600;">${safeEmail}</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #1f1f1f;color:#8f887e;font-size:13px;">Phone / WhatsApp</td>
+                  <td style="padding:10px 0;border-bottom:1px solid #1f1f1f;color:#ede8df;font-size:14px;">${safePhone}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #1f1f1f;color:#8f887e;font-size:13px;">Service Required</td>
+                  <td style="padding:10px 0;border-bottom:1px solid #1f1f1f;color:#c9a45c;font-size:14px;font-weight:600;">${safeService}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;color:#8f887e;font-size:13px;">Submission Time</td>
+                  <td style="padding:10px 0;color:#ede8df;font-size:13px;">${safeTimestamp}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Project Details Box -->
+          <tr>
+            <td style="padding:0 36px 28px;">
+              <h2 style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#c9a45c;margin:16px 0 12px;">Project Details</h2>
+              <div style="background-color:#181818;border:1px solid #282828;border-left:3px solid #c9a45c;padding:18px 20px;border-radius:2px;font-size:14px;line-height:1.7;color:#f0ede6;">
+                ${safeMessage}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Quick Action CTA -->
+          <tr>
+            <td style="padding:0 36px 32px;" align="center">
+              <a href="mailto:${safeEmail}?subject=Re:%20VYRO%20Digital%20Enquiry%20-%20${encodeURIComponent(cleanService)}" 
+                 style="display:inline-block;background-color:#c9a45c;color:#0b0b0b;padding:12px 26px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;border-radius:2px;">
+                Reply to ${safeName} &rarr;
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#0b0b0b;padding:20px 36px;border-top:1px solid #1f1f1f;font-size:11px;color:#777777;text-align:center;line-height:1.6;">
+              Dispatched automatically via Gmail SMTP from VYRO Digital website contact form.<br/>
+              Recipient: ${contactTo}
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `.trim();
 
     const text = [
+      "==================================================",
       "NEW WEBSITE ENQUIRY — VYRO DIGITAL",
+      "==================================================",
       "",
-      `Name:             ${name}`,
-      `Email:            ${email}`,
-      `Phone/WhatsApp:   ${phone || "—"}`,
-      `Service:          ${service}`,
+      `Full Name:          ${name}`,
+      `Email Address:      ${email}`,
+      `Phone / WhatsApp:   ${phone || "Not provided"}`,
+      `Service Required:   ${service}`,
+      `Submission Time:    ${submissionDate} (IST)`,
       "",
-      "Project details:",
+      "--------------------------------------------------",
+      "PROJECT DETAILS:",
+      "--------------------------------------------------",
       message,
+      "",
+      "==================================================",
+      "Dispatched automatically via Gmail SMTP from VYRO Digital",
+      "==================================================",
     ].join("\n");
 
+    /* 9. Send Email */
     await transporter.sendMail({
-      from:     `"VYRO Digital Website" <${gmailUser}>`,
-      to:       toEmail,
-      replyTo:  email,
-      subject:  `New enquiry — ${service} | ${name}`,
+      from: `"VYRO Digital" <${gmailUser}>`,
+      to: contactTo,
+      replyTo: email,
+      subject: `New Enquiry — ${cleanService} | ${cleanName}`,
       text,
       html,
     });
 
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("[contact] Unexpected error:", err);
     return NextResponse.json(
-      { error: "Something went wrong while sending your enquiry. Please try again or reach out directly." },
-      { status: 500 }
+      {
+        ok: true,
+        message: "Thank you — we'll reply within 24 hours.",
+      },
+      { status: 200, headers: corsHeaders }
+    );
+  } catch (err: any) {
+    // Log server-side error code and message without exposing password
+    console.error("[contact-api] SMTP send error:", {
+      code: err?.code || "UNKNOWN",
+      message: err?.message || String(err),
+    });
+    return NextResponse.json(
+      {
+        error:
+          "Unable to send enquiry due to a mail server error. Please try again or reach out directly at vyrodigital04@gmail.com.",
+      },
+      { status: 500, headers: corsHeaders }
     );
   }
 }

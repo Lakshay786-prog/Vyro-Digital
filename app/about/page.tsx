@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "../../components/Reveal";
 
-export const metadata = { title: "About VYRO Digital" };
+export const metadata: Metadata = {
+  title: "About Us — The Thinking Behind The Work",
+  description:
+    "Learn about VYRO Digital: bringing strategy, design, and technology together to create modern websites and brands that move businesses forward.",
+  alternates: {
+    canonical: "/about",
+  },
+};
 
 export default function About() {
   return (

@@ -1,12 +1,12 @@
-/* VYRO Digital — Black & Gold Orbital Atom Animation (transparent, no sparks) */
+/* VYRO Digital — Black & Gold Orbital Atom Animation */
 .atom-scene {
   display: grid;
   place-items: center;
   perspective: 1000px;
   width: 100%;
+  overflow: hidden;
 }
 
-/* Fully transparent — no card box visible at all */
 .atom-card {
   width: 520px;
   height: 520px;
@@ -27,7 +27,6 @@
   animation: atomFloat 5s ease-in-out infinite;
 }
 
-/* Clean orbit rings — no glow, no sparks */
 .orbit {
   position: absolute;
   inset: 0;
@@ -49,7 +48,6 @@
   animation: orbitSpin 7s linear infinite;
 }
 
-/* Plain gold dot electrons — no sparks, no glow */
 .electron {
   position: absolute;
   width: 10px;
@@ -61,7 +59,6 @@
   box-shadow: none;
 }
 
-/* Nucleus wrap: holds rotating text ring + theme gold center circle */
 .nucleus-wrap {
   position: absolute;
   top: 50%;
@@ -74,7 +71,6 @@
   pointer-events: none;
 }
 
-/* Rotating BUILD. BRAND. GROW. circular SVG text ring */
 .nucleus-orbit-text {
   position: absolute;
   inset: 0;
@@ -94,7 +90,6 @@
   text-shadow: 0 0 8px rgba(201, 164, 92, 0.45);
 }
 
-/* Center circle in theme color — Luxury Metallic Gold Core */
 .nucleus {
   position: absolute;
   top: 50%;
@@ -103,7 +98,6 @@
   height: 86px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  /* Theme Gold metallic gradient replacing old dark black */
   background: radial-gradient(circle at 35% 30%, #fff8dc 0%, #f4dc9e 18%, #c9a45c 52%, #997430 82%, #684a17 100%);
   border: 2px solid #fff2bf;
   box-shadow: 0 0 25px rgba(201, 164, 92, 0.6),
@@ -124,7 +118,6 @@
   pointer-events: none;
 }
 
-/* Obsidian Black VYRO text on Theme Gold Core */
 .nucleus-brand {
   font-family: "Space Grotesk", sans-serif;
   font-weight: 900;
@@ -160,14 +153,28 @@
   .nucleus-brand { font-size: 13px; }
   .nucleus-svg-text { font-size: 6.5px; }
 }
+
 @media (max-width: 600px) {
-  .atom-card { width: 300px; height: 300px; }
-  .atom { width: 190px; height: 190px; }
+  .atom-card { width: 280px; height: 280px; }
+  .atom {
+    width: 180px;
+    height: 180px;
+    animation-duration: 9s;
+  }
+  .orbit-one { animation-duration: 9s; }
+  .orbit-two { animation-duration: 11s; }
+  .orbit-three { animation-duration: 13s; }
   .nucleus-wrap { width: 98px; height: 98px; }
-  .nucleus { width: 54px; height: 54px; }
+  .nucleus {
+    width: 54px;
+    height: 54px;
+    animation-duration: 6s;
+  }
+  .nucleus-orbit-text { animation-duration: 30s; }
   .nucleus-brand { font-size: 11px; letter-spacing: 0.18em; }
   .nucleus-svg-text { font-size: 5.5px; }
 }
+
 @media (prefers-reduced-motion: reduce) {
   .atom, .orbit, .nucleus-orbit-text, .nucleus { animation: none; }
 }
