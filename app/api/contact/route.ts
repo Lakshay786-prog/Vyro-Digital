@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
 
 export const runtime = "nodejs";
 
@@ -66,15 +65,15 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-function isPlaceholderCredential(val: string | undefined): boolean {
+function isPlaceholderApiKey(val: string | undefined): boolean {
   if (!val) return true;
   const lower = val.toLowerCase().trim();
   return (
     lower === "" ||
-    lower.includes("your_") ||
-    lower.includes("password_here") ||
-    lower.includes("app_password") ||
-    lower.includes("example")
+    lower.startsWith("your_") ||
+    lower.includes("placeholder") ||
+    lower.includes("example") ||
+    lower === "re_123456789"
   );
 }
 
@@ -180,14 +179,13 @@ export async function POST(req: Request) {
       );
     }
 
-    /* 5. Read & Verify Credentials */
-    const gmailUser = process.env.GMAIL_USER?.trim();
-    const gmailPass = process.env.GMAIL_PASS?.trim();
+    /* 5. Read & Verify Resend API Key */
+    const resendApiKey = process.env.RESEND_API_KEY?.trim();
     const contactTo = process.env.CONTACT_TO?.trim() || "vyrodigital04@gmail.com";
 
-    if (!gmailUser || !gmailPass || isPlaceholderCredential(gmailPass)) {
+    if (!resendApiKey || isPlaceholderApiKey(resendApiKey)) {
       console.warn(
-        `[contact-api] Email credentials not configured or placeholder detected (user: ${gmailUser || "none"}).`
+        `[contact-api] RESEND_API_KEY is not configured or placeholder detected.`
       );
       return NextResponse.json(
         {
@@ -202,18 +200,7 @@ export async function POST(req: Request) {
     const cleanName = name.replace(/[\r\n]+/g, " ");
     const cleanService = service.replace(/[\r\n]+/g, " ");
 
-    /* 7. Configure Nodemailer Transporter */
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: gmailUser,
-        pass: gmailPass,
-      },
-    });
-
-    /* 8. Timestamp & Escaped HTML Rendering */
+    /* 7. Timestamp & Escaped HTML Rendering */
     const now = new Date();
     const submissionDate = new Intl.DateTimeFormat("en-IN", {
       dateStyle: "full",
@@ -314,7 +301,7 @@ export async function POST(req: Request) {
           <!-- Footer -->
           <tr>
             <td style="background-color:#0b0b0b;padding:20px 36px;border-top:1px solid #1f1f1f;font-size:11px;color:#777777;text-align:center;line-height:1.6;">
-              Dispatched automatically via Gmail SMTP from VYRO Digital website contact form.<br/>
+              Dispatched automatically via Resend Email API from VYRO Digital website contact form.<br/>
               Recipient: ${contactTo}
             </td>
           </tr>
@@ -344,37 +331,69 @@ export async function POST(req: Request) {
       message,
       "",
       "==================================================",
-      "Dispatched automatically via Gmail SMTP from VYRO Digital",
+      "Dispatched automatically via Resend Email API from VYRO Digital",
       "==================================================",
     ].join("\n");
 
-    /* 9. Send Email */
-    await transporter.sendMail({
-      from: `"VYRO Digital" <${gmailUser}>`,
-      to: contactTo,
-      replyTo: email,
+    /* 8. Send Email via Resend HTTPS API */
+    const resendPayload = {
+      from: "VYRO Digital <onboarding@resend.dev>",
+      to: [contactTo],
+      reply_to: email,
       subject: `New Enquiry — ${cleanService} | ${cleanName}`,
-      text,
       html,
+      text,
+    };
+
+    const resendResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(resendPayload),
     });
+
+    const resendData = await resendResponse.json().catch(() => null);
+
+    if (!resendResponse.ok) {
+      console.error("[contact-api] Resend API error:", {
+        status: resendResponse.status,
+        data: resendData,
+      });
+
+      const errorMessage =
+        resendData?.message ||
+        "Unable to send enquiry through mail provider. Please check configuration or try again.";
+
+      return NextResponse.json(
+        { error: errorMessage },
+        {
+          status:
+            resendResponse.status >= 400 && resendResponse.status < 600
+              ? resendResponse.status
+              : 502,
+          headers: corsHeaders,
+        }
+      );
+    }
 
     return NextResponse.json(
       {
         ok: true,
         message: "Thank you — we'll reply within 24 hours.",
+        id: resendData?.id,
       },
       { status: 200, headers: corsHeaders }
     );
   } catch (err: any) {
-    // Log server-side error code and message without exposing password
-    console.error("[contact-api] SMTP send error:", {
-      code: err?.code || "UNKNOWN",
+    console.error("[contact-api] Unexpected dispatch error:", {
       message: err?.message || String(err),
     });
     return NextResponse.json(
       {
         error:
-          "Unable to send enquiry due to a mail server error. Please try again or reach out directly at vyrodigital04@gmail.com.",
+          "Unable to send enquiry due to a server error. Please try again or reach out directly at vyrodigital04@gmail.com.",
       },
       { status: 500, headers: corsHeaders }
     );

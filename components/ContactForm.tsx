@@ -84,6 +84,9 @@ export function ContactForm() {
 
     setIsSubmitting(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second safeguard timeout
+
     try {
       // Always use same-origin /api/contact — frontend and API are deployed together
       const endpoint = "/api/contact";
@@ -93,6 +96,7 @@ export function ContactForm() {
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
         body: JSON.stringify({
           name: formData.name.trim(),
           email: formData.email.trim(),
@@ -102,6 +106,8 @@ export function ContactForm() {
           website: formData.website, // honeypot
         }),
       });
+
+      clearTimeout(timeoutId);
 
       let data: Record<string, unknown> | null = null;
       try {
@@ -129,12 +135,19 @@ export function ContactForm() {
             "Unable to send your message right now. Please try again or email us directly at vyrodigital04@gmail.com."
         );
       }
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error("[ContactForm] Submit error:", error);
       setIsSuccess(false);
-      setStatusMessage(
-        "A network error occurred while submitting. Please check your connection or email us directly."
-      );
+      if (error?.name === "AbortError") {
+        setStatusMessage(
+          "Request timed out. Please check your connection or email us directly at vyrodigital04@gmail.com."
+        );
+      } else {
+        setStatusMessage(
+          "A network error occurred while submitting. Please check your connection or email us directly."
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
